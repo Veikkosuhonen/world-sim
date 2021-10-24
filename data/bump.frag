@@ -10,11 +10,23 @@ vec4 getBump(vec2 st) {
     const vec2 size = vec2(0.01,0.0);
     const ivec3 off = ivec3(-1,0,1);
 
-    float s11 = texture(u_heightmap, st).x;
-    float s01 = textureOffset(u_heightmap, st, off.xy).x;
-    float s21 = textureOffset(u_heightmap, st, off.zy).x;
-    float s10 = textureOffset(u_heightmap, st, off.yx).x;
-    float s12 = textureOffset(u_heightmap, st, off.yz).x;
+    vec2 data;
+
+    data = texture(u_heightmap, st).xz;
+    float s11 = data.x + data.y;
+
+    data = textureOffset(u_heightmap, st, off.xy).xz;
+    float s01 = data.x + data.y;
+
+    data = textureOffset(u_heightmap, st, off.zy).xz;
+    float s21 = data.x + data.y;
+
+    data = textureOffset(u_heightmap, st, off.yx).xz;
+    float s10 = data.x + data.y;
+
+    data = textureOffset(u_heightmap, st, off.yz).xz;
+    float s12 = data.x + data.y;
+
     vec3 va = normalize(vec3(size.xy,s21-s01));
     vec3 vb = normalize(vec3(size.yx,s12-s10));
     vec4 bump = vec4( cross(va,vb), s11 );

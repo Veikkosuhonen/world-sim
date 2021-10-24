@@ -3,17 +3,22 @@ import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.*
 import org.openrndr.extra.noise.valueHermite
 import org.openrndr.internal.Driver
-import org.openrndr.math.Vector2
 import org.openrndr.math.Vector3
 import java.io.File
+import kotlin.math.abs
+import kotlin.math.cos
 
 fun main() = application {
     configure {
-        width = 1280
-        height = 720
+        width = 2560
+        height = 1440
+        vsync = true
     }
 
     program {
+
+        var rain = 0f;
+        var time = 0.0;
 
         val simulationShader = loadShader("data/screenspace.vert", "data/simulation.frag")
         val imageShader = loadShader("data/screenspace.vert", "data/image.frag")
@@ -26,6 +31,8 @@ fun main() = application {
         val bumpBuffer = getBumpBuffer(width, height)
 
         extend {
+            time += deltaTime;
+
             val bufferRenderDirection = frameCount % 2 == 0;
             val source = if (bufferRenderDirection) dataBuffer1 else dataBuffer2
             val target = if (bufferRenderDirection) dataBuffer2 else dataBuffer1
@@ -35,6 +42,8 @@ fun main() = application {
                 simulationShader.begin()
                 simulationShader.uniform("u_heightmap", 1)
                 simulationShader.uniform("u_resolution", width.toFloat(), height.toFloat())
+                simulationShader.uniform("u_rain", rain);
+                simulationShader.uniform("u_time", time)
                 Driver.instance.drawVertexBuffer(
                     simulationShader,
                     listOf(geometry),
@@ -72,6 +81,8 @@ fun main() = application {
 
             drawer.text((1.0 / deltaTime).toString().substring(0..3), 10.0, 10.0)
         }
+
+        mouse.buttonDown.listen { rain = if (rain == 0f) 0.0000001f else 0f }
     }
 }
 
@@ -88,7 +99,9 @@ fun getDataBuffer(width: Int, height: Int): RenderTarget {
 }
 
 fun writeToBuffer(x: Int, y: Int, buffer: ColorBufferShadow) {
-    val height = noise(x, y, 1024, 42)
+    var height = noise(x, y, 1024, 23) * 0.5
+    height += (x.toDouble() - 1024) / 2048.0
+    height += abs(y - 512.0) / 1024.0
     buffer[x, y] = ColorRGBa(height, 0.0, 0.0, 1.0)
 }
 
@@ -116,7 +129,7 @@ fun loadShader(vsPath: String, fsPath: String): Shader {
     return Shader.createFromCode(vsCode = File(vsPath).readText(), fsCode = File(fsPath).readText(), name = fsPath.substring(5))
 }
 
-fun noise(x0: Int, y0: Int, n: Int, seed: Int, grain: Double = 0.5): Double {
+fun noise(x0: Int, y0: Int, n: Int, seed: Int, grain: Double = 0.6): Double {
     val x = x0.toDouble() / n - 39.0
     val y = y0.toDouble() / n + 72.0
 
